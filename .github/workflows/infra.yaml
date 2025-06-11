@@ -1,0 +1,47 @@
+name: "Terraform Infrastructure Automation"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/**"
+
+jobs:
+  terraform:
+    name: "Terraform Apply"
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: infra
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -var="ssh_key_name=${{ secrets.EC2_KEY_PAIR_NAME }}"
+
+      - name: Terraform Apply
+        id: apply
+        run: terraform apply -auto-approve -var="ssh_key_name=${{ secrets.EC2_KEY_PAIR_NAME }}"
